@@ -36,6 +36,7 @@ Authentication: JWT
 IDE:Pycharm
 
 
+
 # Git Commit Style Guide
 
 This guide shows the recommended format for commit messages in this project.
