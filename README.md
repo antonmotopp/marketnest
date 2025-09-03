@@ -24,6 +24,7 @@ Marketnest is a clone of Marktplaats, designed as an online marketplace where us
 
 🔍 Smart Search – Search prioritizes newer advertisements while also considering user ratings.
 
+    
 🛠️ Tech Stack
 
 Frontend: Html
@@ -31,6 +32,8 @@ Frontend: Html
 Backend: Pyhton FastApi
 
 Authentication: JWT
+
+IDE:Pycharm
 
 
 # Git Commit Style Guide
