@@ -33,8 +33,6 @@ Backend: Pyhton FastApi
 
 Authentication: JWT
 
-IDE:Pycharm
-
 
 
 # Git Commit Style Guide
