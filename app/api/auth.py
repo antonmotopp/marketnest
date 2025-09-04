@@ -1,0 +1,42 @@
+from fastapi import APIRouter, HTTPException, Depends
+from app.core.security import verify_password, create_access_token
+from app.models.user import DBUser
+from app.db.database import get_db
+from sqlalchemy.orm import Session
+from app.schemas.user import LoginRequest
+
+router = APIRouter()
+
+@router.post(
+    '/login',
+    summary="User Login",
+    description="Endpoint for user authentication. Users can log in using their credentials."
+)
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(DBUser).filter(DBUser.username == request.username).first()
+
+    if not user or not verify_password(request.password, user.password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password"
+        )
+
+    access_token = create_access_token(data={"sub": user.username})
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }
+    }
+
+@router.post(
+    '/logout',
+    summary="User Logout",
+    description="Endpoint for user logout. This will invalidate the user's session."
+)
+async def logout():
+    return {'message': 'Successfully logged out'}

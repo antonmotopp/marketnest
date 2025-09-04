@@ -1,4 +1,8 @@
 fastapi[standard]==0.115.11
 uvicorn==0.34.0
-sqlalchemy==2.0.23
+sqlalchemy==1.4.53
 passlib==1.7.4
+python-jose[cryptography]==3.3.0
+pytest==7.4.3
+httpx==0.25.2
+bcrypt==4.0.1
