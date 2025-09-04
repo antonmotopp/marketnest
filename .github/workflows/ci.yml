@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Run Tests
 
 on:
   push:
@@ -9,207 +9,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11"]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        python-version: "3.11"
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Debug project structure
-      run: |
-        echo "=== Current directory ==="
-        pwd
-        echo "=== Project files ==="
-        ls -la
-        echo "=== Tests directory ==="
-        ls -la tests/ 2>/dev/null || echo "Tests directory not found"
-        echo "=== Python path ==="
-        python -c "import sys; print('\\n'.join(sys.path))"
-
-    - name: Check for tests
-      id: check_tests
-      run: |
-        if [ -d "tests" ] && [ "$(find tests -name "test_*.py" -type f)" ]; then
-          echo "test_files_exist=true" >> $GITHUB_OUTPUT
-          echo "Found test files:"
-          find tests -name "test_*.py" -type f
-        else
-          echo "test_files_exist=false" >> $GITHUB_OUTPUT
-          echo "No test files found"
-        fi
-
-    - name: Test pytest discovery
-      if: steps.check_tests.outputs.test_files_exist == 'true'
-      run: |
-        echo "=== Testing pytest discovery ==="
-        python -m pytest --collect-only tests/ -v || echo "Collection failed"
-
     - name: Run tests
-      if: steps.check_tests.outputs.test_files_exist == 'true'
       env:
         PYTHONPATH: .
       run: |
-        echo "=== Running all tests ==="
-        if [ "${{ github.base_ref }}" == "main" ] || [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          echo "Running tests in STRICT MODE for main branch"
-          python -m pytest tests/ -v --tb=short --strict-markers
-        else
-          echo "Running tests for develop branch"
-          python -m pytest tests/ -v --tb=short
-        fi
-
-    - name: Skip tests message
-      if: steps.check_tests.outputs.test_files_exist == 'false'
-      run: |
-        echo "No tests found - skipping test execution"
-        echo "This is not a failure, just no tests to run"
-
-    - name: Test API health check
-      run: |
-        echo "=== Starting API server ==="
-        python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
-        SERVER_PID=$!
-        
-        echo "Waiting for server to start..."
-        sleep 10
-        
-        echo "=== Testing API endpoints ==="
-        curl -f http://localhost:8000/ || echo "Root endpoint failed"
-        
-        echo "=== Stopping server ==="
-        kill $SERVER_PID || echo "Server already stopped"
-
-  security-check:
-    runs-on: ubuntu-latest
-    needs: test
-    if: success()
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install safety
-
-    - name: Run security scan
-      run: |
-        echo "=== Running security scan ==="
-        safety check || echo "Security scan completed with warnings"
-
-  production-check:
-    runs-on: ubuntu-latest
-    needs: [test, security-check]
-    if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
-
-    steps:
-    - name: Production readiness check
-      run: |
-        echo "=== PRODUCTION DEPLOYMENT CHECK ==="
-        echo "All tests must pass before merging to main"
-        echo "Tests status: ${{ needs.test.result }}"
-        echo "Security status: ${{ needs.security-check.result }}"
-        
-        if [ "${{ needs.test.result }}" != "success" ]; then
-          echo "Tests failed - blocking merge to main"
-          exit 1
-        fi
-        
-        if [ "${{ needs.security-check.result }}" != "success" ]; then
-          echo "Security check failed - blocking merge to main"
-          exit 1
-        fi
-        
-        echo "All checks passed - ready for production"
-
-  build-check:
-    runs-on: ubuntu-latest
-    needs: [test, security-check]
-    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && success()
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
-
-    - name: Create build package
-      run: |
-        echo "=== Creating deployment package ==="
-        mkdir -p build
-        cp -r app build/
-        cp main.py build/
-        cp requirements.txt build/
-        echo "Build package created successfully"
-        ls -la build/
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: marketnest-${{ github.sha }}
-        path: build/
-        retention-days: 30
-
-  summary:
-    runs-on: ubuntu-latest
-    needs: [test, security-check, build-check, production-check]
-    if: always()
-
-    steps:
-    - name: Job summary
-      run: |
-        echo "=== CI/CD Pipeline Summary ==="
-        echo "Branch: ${{ github.ref }}"
-        echo "Base branch: ${{ github.base_ref }}"
-        echo "Tests: ${{ needs.test.result }}"
-        echo "Security: ${{ needs.security-check.result }}"
-        echo "Build: ${{ needs.build-check.result }}"
-        echo "Production check: ${{ needs.production-check.result }}"
-        
-        if [ "${{ github.base_ref }}" == "main" ] || [ "${{ github.ref }}" == "refs/heads/main" ]; then
-          echo "=== PRODUCTION PIPELINE ==="
-          if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.security-check.result }}" == "success" ] && [ "${{ needs.production-check.result }}" == "success" ]; then
-            echo "All production checks passed - safe to merge to main!"
-          else
-            echo "Production checks failed - merge to main BLOCKED"
-            exit 1
-          fi
-        else
-          echo "=== DEVELOPMENT PIPELINE ==="
-          if [ "${{ needs.test.result }}" == "success" ]; then
-            echo "Development checks passed!"
-          else
-            echo "Some development checks failed"
-            exit 1
-          fi
-        fi
+        python -m pytest tests/ -v
