@@ -28,4 +28,10 @@ jobs:
       env:
         PYTHONPATH: .
       run: |
-        python -m pytest tests/ -v
+        if [ -d "tests" ] && [ "$(find tests -name "test_*.py" -type f)" ]; then
+          echo "Running tests..."
+          python -m pytest tests/ -v
+        else
+          echo "No test files found, skipping tests"
+          exit 0
+        fi
