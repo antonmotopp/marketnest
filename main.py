@@ -1,10 +1,13 @@
 from fastapi import FastAPI
+from app.api import auth
 
 app = FastAPI(title='MarketNest API')
 
+app.include_router(auth.router, prefix="/auth", tags=['auth'])
+
 @app.get("/")
 def root():
-    return {"message": "Server is working"}
+    return "Server is working"
 
 if __name__ == '__main__':
     import uvicorn
