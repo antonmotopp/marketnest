@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, get_current_user
 from app.models.user import DBUser
 from app.db.database import get_db
 from sqlalchemy.orm import Session
@@ -38,5 +38,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     summary="User Logout",
     description="Endpoint for user logout. This will invalidate the user's session."
 )
-async def logout():
-    return {'message': 'Successfully logged out'}
+async def logout(current_user: DBUser = Depends(get_current_user)):
+    return {
+        'message': f'User {current_user.username} successfully logged out',
+        'status': 'success'
+    }

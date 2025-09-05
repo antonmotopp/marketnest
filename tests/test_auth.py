@@ -1,9 +1,10 @@
 import pytest
+from main import app
+from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from main import app
 from app.db.database import get_db, Base
 from app.models.user import DBUser
 from app.core.security import hash_password
@@ -52,7 +53,7 @@ def test_login_success(client):
         "password": "testpassword"
     })
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     data = response.json()
 
     assert "access_token" in data
@@ -71,7 +72,7 @@ def test_login_wrong_password(client):
         "username": "testuser",
         "password": "wrongpassword"
     })
-    assert response.status_code == 401
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Incorrect username or password" in response.json()["detail"]
 
 
@@ -80,7 +81,7 @@ def test_login_wrong_username(client):
         "username": "nonexistent",
         "password": "testpassword"
     })
-    assert response.status_code == 401
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Incorrect username or password" in response.json()["detail"]
 
 
@@ -88,11 +89,11 @@ def test_login_missing_fields(client):
     response = client.post("/auth/login", json={
         "username": "testuser"
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     response = client.post("/auth/login", json={
         "password": "testpassword"
     })
-    assert response.status_code == 422
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_login_empty_fields(client):
@@ -100,10 +101,28 @@ def test_login_empty_fields(client):
         "username": "",
         "password": ""
     })
-    assert response.status_code == 401
-
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 def test_logout_success(client):
+    login_response = client.post("/auth/login", json={
+        "username": "testuser",
+        "password": "testpassword"
+    })
+    token = login_response.json()["access_token"]
+    response = client.post("/auth/logout", headers={
+        "Authorization": f"Bearer {token}"
+    })
+    assert response.status_code == status.HTTP_200_OK
+    assert "successfully logged out" in response.json()["message"]
+
+
+def test_logout_without_token(client):
     response = client.post("/auth/logout")
-    assert response.status_code == 200
-    assert "Successfully logged out" in response.json()["message"]
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_logout_invalid_token(client):
+    response = client.post("/auth/logout", headers={
+        "Authorization": "Bearer invalid-token"
+    })
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
