@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from app.api import auth
 from app.db.database import Base, engine
 
-app = FastAPI(title='MarketNest API')
+
+app = FastAPI(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json", title="MarketNest API")
 
 Base.metadata.create_all(bind=engine)
 

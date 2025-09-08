@@ -47,7 +47,7 @@ async def logout(current_user: DBUser = Depends(get_current_user)):
 @router.post(
     "/register",
     summary="User Registration",
-    description="*Endpoint for new user registration with email/username validation and password hashing.*",
+    description="*Endpoint for a new user registration with email/username validation and password hashing.*",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED
 )
@@ -66,9 +66,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-
     return {
-        "username": new_user.username,
-        "password":new_user.password,
-        "email": new_user.email
+    "username": new_user.username,
+    "email": new_user.email
     }
+
