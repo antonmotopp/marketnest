@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 
+#If you dont use UserBase you can get Internal 500 error
 class UserBase(BaseModel):
     username: str
     email: str
