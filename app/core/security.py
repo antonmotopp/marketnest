@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.db.database import get_db
-from app.models.user import DBUser
+from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -42,7 +42,7 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = db.query(DBUser).filter(DBUser.username == username).first()
+    user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception
 
