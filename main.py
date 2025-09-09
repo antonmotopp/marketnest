@@ -1,18 +1,11 @@
 from fastapi import FastAPI
-from app.api import auth, advertisements
+from app.api import auth, users, advertisements
 from app.db.database import Base, engine
 
-app = FastAPI(docs_url="/docs", redoc_url="/redoc", openapi_url="/openapi.json", title="MarketNest API")
+app = FastAPI(title="MarketNest API")
 
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router, prefix="/auth", tags=['auth'])
+app.include_router(users.router, prefix="/users", tags=['users'])
 app.include_router(advertisements.router, prefix='/advertisements', tags=['advertisements'])
-
-@app.get("/")
-def root():
-    return "Server is working"
-
-if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
