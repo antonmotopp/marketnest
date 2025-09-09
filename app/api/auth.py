@@ -3,12 +3,13 @@ from app.core.security import verify_password, create_access_token, get_current_
 from app.models.user import User
 from app.db.database import get_db
 from sqlalchemy.orm import Session
-from app.schemas.user import LoginRequest
+from app.schemas.auth import LoginRequest, TokenResponse
 
 router = APIRouter()
 
 @router.post(
     '/login',
+    response_model=TokenResponse,
     summary="User Login",
     description="Endpoint for user authentication. Users can log in using their credentials."
 )
