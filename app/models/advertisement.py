@@ -13,3 +13,4 @@ class Advertisement(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
     owner = relationship("User", back_populates="advertisements")
+    reviews = relationship("UserRating", back_populates="advertisement")
