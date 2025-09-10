@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.core.security import get_current_user
+from app.enums.category import CategoryEnum
 from app.models.advertisement import Advertisement
 from app.models.user import User
 from app.schemas.advertisement import AdvertisementCreate, AdvertisementUpdate, AdvertisementResponse
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -24,7 +25,8 @@ async def create_advertisement(
         title=advertisement.title,
         description=advertisement.description,
         price=advertisement.price,
-        user_id=current_user.id
+        user_id=current_user.id,
+        category=advertisement.category
     )
 
     db.add(db_advertisement)
@@ -40,9 +42,17 @@ async def create_advertisement(
    summary="Get All Advertisements",
    description="Retrieve a list of all advertisements. No authentication required."
 )
-async def get_advertisements(db: Session = Depends(get_db)):
-   advertisements = db.query(Advertisement).all()
-   return advertisements
+async def get_advertisements(
+        category: Optional[CategoryEnum] = Query(None, description="Filter by category"),
+        db: Session = Depends(get_db)
+):
+    query = db.query(Advertisement).order_by(Advertisement.created_at.desc())
+
+    if category:
+        query = query.filter(Advertisement.category == category)
+
+    advertisements = query.all()
+    return advertisements
 
 
 @router.get(

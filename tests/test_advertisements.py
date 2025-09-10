@@ -6,7 +6,8 @@ def test_create_advertisement_success(client, auth_token):
                            json={
                                "title": "iPhone 13 for sale",
                                "description": "Excellent condition, all accessories included",
-                               "price": 15000.50
+                               "price": 15000.50,
+                               "category": "electronics"
                            }
                            )
 
@@ -15,8 +16,9 @@ def test_create_advertisement_success(client, auth_token):
 
     assert data["title"] == "iPhone 13 for sale"
     assert data["description"] == "Excellent condition, all accessories included"
-    assert float(data["price"]) == 15000.50
+    assert data["price"] == 15000.50
     assert data["user_id"] == 1
+    assert data["category"] == "electronics"
     assert "id" in data
     assert "created_at" in data
 
@@ -25,7 +27,8 @@ def test_create_advertisement_unauthorized(client):
     response = client.post("/advertisements/", json={
         "title": "iPhone 13",
         "description": "Phone in good condition",
-        "price": 15000.50
+        "price": 15000.50,
+        "category": "electronics"
     })
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -53,7 +56,8 @@ def test_get_advertisements_with_data(client, auth_token):
                 json={
                     "title": "iPhone 13 for sale",
                     "description": "Excellent condition, all accessories included",
-                    "price": 15000.50
+                    "price": 15000.50,
+                    "category": "electronics"
                 }
                 )
 
@@ -71,7 +75,8 @@ def test_get_advertisement_by_id_success(client, auth_token):
                                   json={
                                       "title": "MacBook Pro for sale",
                                       "description": "Latest model with warranty",
-                                      "price": 25000.00
+                                      "price": 25000.00,
+                                      "category": "electronics"
                                   }
                                   )
     created_id = create_response.json()["id"]
@@ -104,7 +109,8 @@ def test_update_advertisement_success(client, auth_token):
                                   json={
                                       "title": "Old Title",
                                       "description": "Old description",
-                                      "price": 1000.00
+                                      "price": 1000.00,
+                                      "category": "electronics"
                                   })
     created_id = create_response.json()["id"]
 
@@ -118,8 +124,9 @@ def test_update_advertisement_success(client, auth_token):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["title"] == "Updated Title"
-    assert float(data["price"]) == 1500.00
+    assert data["price"] == 1500.00
     assert data["description"] == "Old description"
+    assert data["category"] == "electronics"
 
 
 def test_update_advertisement_unauthorized(client):
@@ -144,7 +151,8 @@ def test_delete_advertisement_success(client, auth_token):
                                   json={
                                       "title": "To Delete",
                                       "description": "This will be deleted",
-                                      "price": 1000.00
+                                      "price": 1000.00,
+                                      "category": "electronics"
                                   })
     created_id = create_response.json()["id"]
 
@@ -169,3 +177,41 @@ def test_delete_advertisement_not_found(client, auth_token):
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Advertisement not found"
+
+
+def test_create_advertisement_invalid_category(client, auth_token):
+    response = client.post("/advertisements/",
+                          headers={"Authorization": f"Bearer {auth_token}"},
+                          json={
+                              "title": "Test",
+                              "description": "Test",
+                              "price": 100.00,
+                              "category": "invalid_category"
+                          })
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_filter_advertisements_by_category(client, auth_token):
+    client.post("/advertisements/",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "title": "Phone",
+                    "description": "Test",
+                    "price": 100.00,
+                    "category": "electronics"
+                })
+
+    client.post("/advertisements/",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "title": "Chair",
+                    "description": "Test",
+                    "price": 50.00,
+                    "category": "furniture"
+                })
+
+    response = client.get("/advertisements/all?category=electronics")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["category"] == "electronics"
