@@ -12,3 +12,6 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
     advertisements = relationship("Advertisement", back_populates="owner")
+
+    reviews_given = relationship("UserRating", foreign_keys="UserRating.reviewer_id", back_populates="reviewer")
+    reviews_received = relationship("UserRating", foreign_keys="UserRating.reviewed_user_id", back_populates="reviewed_user")
