@@ -1,12 +1,14 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from decimal import Decimal
 from datetime import datetime
+from app.enums.category import CategoryEnum
+
 
 class AdvertisementBase(BaseModel):
     title: str
     description: str
-    price: Decimal
+    price: float
+    category: CategoryEnum
 
 class AdvertisementCreate(AdvertisementBase):
     pass
@@ -14,7 +16,8 @@ class AdvertisementCreate(AdvertisementBase):
 class AdvertisementUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    price: Optional[Decimal] = None
+    price: Optional[float] = None
+    category: Optional[CategoryEnum] = None
 
 class AdvertisementResponse(AdvertisementBase):
     id: int
