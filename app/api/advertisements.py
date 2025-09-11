@@ -19,7 +19,7 @@ router = APIRouter()
 async def create_advertisement(
         advertisement: AdvertisementCreate,
         current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db),
+        db: Session = Depends(get_db)
 ):
     db_advertisement = Advertisement(
         title=advertisement.title,
