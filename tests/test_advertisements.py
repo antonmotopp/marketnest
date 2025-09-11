@@ -31,7 +31,7 @@ def test_create_advertisement_unauthorized(client):
         "category": "electronics"
     })
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_create_advertisement_missing_fields(client, auth_token):
@@ -133,7 +133,7 @@ def test_update_advertisement_unauthorized(client):
     response = client.put("/advertisements/1", json={
         "title": "Updated Title"
     })
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_update_advertisement_not_found(client, auth_token):
@@ -168,7 +168,7 @@ def test_delete_advertisement_success(client, auth_token):
 
 def test_delete_advertisement_unauthorized(client):
     response = client.delete("/advertisements/1")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_delete_advertisement_not_found(client, auth_token):

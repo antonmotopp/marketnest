@@ -1,9 +1,8 @@
 from typing import List
-
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.core.security import get_current_user
+from app.auth.oauth2 import get_current_user
 from app.models.user import User
 from app.models.user_rating import UserRating
 from app.schemas.user_rating import UserRatingCreate, UserRatingResponse
@@ -23,7 +22,7 @@ async def create_user_rating(
         db: Session = Depends(get_db)):
 
     if current_user.id == user_rating.reviewed_user_id:
-        raise HTTPException(status_code=400, detail="Users cannot rate themselves")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Users cannot rate themselves")
 
     existing_rating = db.query(UserRating).filter(
         UserRating.reviewer_id == current_user.id,
@@ -32,7 +31,7 @@ async def create_user_rating(
     ).first()
 
     if existing_rating:
-        raise HTTPException(status_code=400, detail="You have already rated this user")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You have already rated this user")
 
     db_user_rating = UserRating(
         reviewer_id=current_user.id,

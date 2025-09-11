@@ -13,38 +13,32 @@ def test_register_success(client):
     assert "password" not in data
 
 def test_register_existing_username(client):
-
     response = client.post("/users/register", json={
         "username": "testuser",
         "email": "test1@example.com",
         "password": "secretpassword"
     })
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "*Username or email already exists*" in response.json()["detail"]
+    assert "Username or email already exists" in response.json()["detail"]
 
 def test_register_existing_email(client):
-
     response = client.post("/users/register", json={
         "username": "testuser1",
         "email": "test@example.com",
         "password": "secretpassword"
     })
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "*Username or email already exists*" in response.json()["detail"]
+    assert "Username or email already exists" in response.json()["detail"]
 
 def test_register_missing_username(client):
-
     response = client.post("/users/register", json={
-
         "email": "test@example.com",
         "password": "secretpassword"
     })
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, "Missing fields: Username"
 
 def test_register_missing_email(client):
-
     response = client.post("/users/register", json={
-
         "username": "testuser1",
         "password": "secretpassword"
     })

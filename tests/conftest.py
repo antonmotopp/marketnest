@@ -3,11 +3,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-
+from app.core.security import Hash
 from main import app
 from app.db.database import get_db, Base
 from app.models.user import User
-from app.core.security import hash_password
+
 
 TEST_DB_URL = "sqlite:///:memory:"
 engine = create_engine(
@@ -38,7 +38,7 @@ def client():
     test_user = User(
         username="testuser",
         email="test@example.com",
-        password=hash_password("testpassword"),
+        password=Hash.hash_password("testpassword"),
     )
     db.add(test_user)
     db.commit()
@@ -52,7 +52,7 @@ def client():
 
 @pytest.fixture
 def auth_token(client):
-    response = client.post("/auth/login", json={
+    response = client.post("/auth/login", data={
         "username": "testuser",
         "password": "testpassword"
     })
