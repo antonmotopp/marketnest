@@ -215,3 +215,71 @@ def test_filter_advertisements_by_category(client, auth_token):
     data = response.json()
     assert len(data) == 1
     assert data[0]["category"] == "electronics"
+
+
+def test_update_advertisement_status_success(client, auth_token):
+    create_response = client.post("/advertisements/",
+                                  headers={"Authorization": f"Bearer {auth_token}"},
+                                  json={
+                                      "title": "Status Test",
+                                      "description": "Test description",
+                                      "price": 100.00,
+                                      "category": "electronics"
+                                  })
+    created_id = create_response.json()["id"]
+
+    response = client.put(f"/advertisements/{created_id}",
+                          headers={"Authorization": f"Bearer {auth_token}"},
+                          json={
+                              "status": "reserved"
+                          })
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["status"] == "reserved"
+
+
+def test_filter_advertisements_by_status(client, auth_token):
+    client.post("/advertisements/",
+                headers={"Authorization": f"Bearer {auth_token}"},
+                json={
+                    "title": "Available Item",
+                    "description": "Test",
+                    "price": 100.00,
+                    "category": "electronics"
+                })
+
+    create_response = client.post("/advertisements/",
+                                  headers={"Authorization": f"Bearer {auth_token}"},
+                                  json={
+                                      "title": "Reserved Item",
+                                      "description": "Test",
+                                      "price": 50.00,
+                                      "category": "furniture"
+                                  })
+    reserved_id = create_response.json()["id"]
+
+    client.put(f"/advertisements/{reserved_id}",
+               headers={"Authorization": f"Bearer {auth_token}"},
+               json={"status": "reserved"})
+
+    response = client.get("/advertisements/all?status=available")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["status"] == "available"
+
+
+def test_create_advertisement_default_status(client, auth_token):
+    response = client.post("/advertisements/",
+                           headers={"Authorization": f"Bearer {auth_token}"},
+                           json={
+                               "title": "New Item",
+                               "description": "Should be available by default",
+                               "price": 200.00,
+                               "category": "other"
+                           })
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["status"] == "available"

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.auth.oauth2 import get_current_user
 from app.db.database import get_db
 from app.enums.category import CategoryEnum
+from app.enums.status import StatusEnum
 from app.models.advertisement import Advertisement
 from app.models.user import User
 from app.schemas.advertisement import AdvertisementCreate, AdvertisementUpdate, AdvertisementResponse
@@ -40,16 +41,20 @@ async def create_advertisement(
    "/all",
    response_model=List[AdvertisementResponse],
    summary="Get All Advertisements",
-   description="Retrieve a list of all advertisements. No authentication required."
+   description="Retrieve advertisements with optional filtering by category and status."
 )
 async def get_advertisements(
         category: Optional[CategoryEnum] = Query(None, description="Filter by category"),
+        status: Optional[StatusEnum] = Query(None, description="Filter by status"),
         db: Session = Depends(get_db)
 ):
     query = db.query(Advertisement).order_by(Advertisement.created_at.desc())
 
     if category:
         query = query.filter(Advertisement.category == category)
+
+    if status:
+        query = query.filter(Advertisement.status == status)
 
     advertisements = query.all()
     return advertisements
