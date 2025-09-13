@@ -58,7 +58,10 @@ async def get_all_ratings_about_user(
     reviewed_user_id: int,
     db: Session = Depends(get_db)
     ):
-    return db.query(UserRating).filter(UserRating.reviewed_user_id == reviewed_user_id).all()
+    ratings= db.query(UserRating).filter(UserRating.reviewed_user_id == reviewed_user_id).all()
+    if not ratings:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return ratings
 
 @router.get(
     "/reviewer/{reviewer_id}",
@@ -71,4 +74,8 @@ async def get_all_ratings_made_by_user(
     reviewer_id: int,
     db: Session = Depends(get_db)
     ):
-    return db.query(UserRating).filter(UserRating.reviewer_id == reviewer_id).all()
+
+    ratings= db.query(UserRating).filter(UserRating.reviewer_id == reviewer_id).all()
+    if not ratings:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return ratings
