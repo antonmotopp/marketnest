@@ -32,7 +32,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
     return new_user
 
-@router.get('/{id}')
+@router.get('/{username}')
 def get_user_by_username(username: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username).first()
     if not user:
