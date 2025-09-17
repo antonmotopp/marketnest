@@ -1,5 +1,5 @@
 from app.db.database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float, Enum, LargeBinary
 from datetime import datetime
 from sqlalchemy.orm import relationship
 from app.enums.category import CategoryEnum
@@ -18,6 +18,7 @@ class Advertisement(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
+    image = Column(LargeBinary, nullable=True)
 
     owner = relationship("User", back_populates="advertisements")
     reviews = relationship("UserRating", back_populates="advertisement")

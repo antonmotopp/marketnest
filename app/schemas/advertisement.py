@@ -26,4 +26,6 @@ class AdvertisementResponse(AdvertisementBase):
     user_id: int
     status: StatusEnum
     created_at: datetime
+    image:Optional[str]=None
     model_config = ConfigDict(from_attributes=True)
+
