@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from app.api import users, advertisements, ratings, categories, messages
 from app.auth import auth
 from app.db.database import Base, engine
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="MarketNest API")
 
@@ -12,5 +13,12 @@ app.include_router(categories.router, prefix='/categories', tags=['categories'])
 app.include_router(ratings.router, prefix="/ratings", tags=["ratings"])
 app.include_router(messages.router, prefix="/messages", tags=["messages"])
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
