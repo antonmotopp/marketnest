@@ -11,11 +11,10 @@ def test_login_success(client):
 
     assert "access_token" in data
     assert "token_type" in data
-    assert "user_id" in data
-    assert "username" in data
+    assert "user" in data
     assert data["token_type"] == "bearer"
-    assert data["username"] == "testuser"
-    assert data["user_id"] == 1
+    assert data['user']["username"] == "testuser"
+    assert data['user']["id"] == 1
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
 
