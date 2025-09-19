@@ -32,14 +32,16 @@ def test_send_message_with_advertisement(client, auth_token):
         "password": "password123"
     })
 
+    form_data = {
+        'title': 'iPhone for sale',
+        'description': 'Good condition',
+        'price': '500.0',
+        'category': 'electronics'
+    }
+
     ad_response = client.post("/advertisements/",
                               headers={"Authorization": f"Bearer {auth_token}"},
-                              json={
-                                  "title": "iPhone for sale",
-                                  "description": "Good condition",
-                                  "price": 500.0,
-                                  "category": "electronics"
-                              })
+                              data=form_data)
     ad_id = ad_response.json()["id"]
 
     response = client.post("/messages/",

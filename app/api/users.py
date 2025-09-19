@@ -32,12 +32,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
     return new_user
 
-@router.get('/{username}')
-def get_user_by_username(username: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
+@router.get('/{id}')
+def get_user_by_id(id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User with username {username} not found'
+            detail=f'User with not found'
         )
     return user

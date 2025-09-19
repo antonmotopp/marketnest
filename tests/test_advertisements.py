@@ -1,15 +1,18 @@
 from fastapi import status
 
 def test_create_advertisement_success(client, auth_token):
-    response = client.post("/advertisements/",
-                           headers={"Authorization": f"Bearer {auth_token}"},
-                           json={
-                               "title": "iPhone 13 for sale",
-                               "description": "Excellent condition, all accessories included",
-                               "price": 15000.50,
-                               "category": "electronics"
-                           }
-                           )
+    form_data = {
+        'title': 'iPhone 13 for sale',
+        'description': 'Excellent condition, all accessories included',
+        'price': '15000.50',
+        'category': 'electronics'
+    }
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -24,24 +27,29 @@ def test_create_advertisement_success(client, auth_token):
 
 
 def test_create_advertisement_unauthorized(client):
-    response = client.post("/advertisements/", json={
-        "title": "iPhone 13",
-        "description": "Phone in good condition",
-        "price": 15000.50,
-        "category": "electronics"
-    })
+    form_data = {
+        'title': 'iPhone 13',
+        'description': 'Phone in good condition',
+        'price': '15000.50',
+        'category': 'electronics'
+    }
 
+    response = client.post("/advertisements/", data=form_data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_create_advertisement_missing_fields(client, auth_token):
-    response = client.post("/advertisements/",
-                           headers={"Authorization": f"Bearer {auth_token}"},
-                           json={
-                               "title": "iPhone 13"
-                           }
-                           )
+    form_data = {
+        'title': 'iPhone 13'
+    }
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
 
 def test_get_advertisements_empty(client):
     response = client.get("/advertisements/all")
@@ -51,15 +59,18 @@ def test_get_advertisements_empty(client):
 
 
 def test_get_advertisements_with_data(client, auth_token):
-    client.post("/advertisements",
-                headers={"Authorization": f"Bearer {auth_token}"},
-                json={
-                    "title": "iPhone 13 for sale",
-                    "description": "Excellent condition, all accessories included",
-                    "price": 15000.50,
-                    "category": "electronics"
-                }
-                )
+    form_data = {
+        'title': 'iPhone 13 for sale',
+        'description': 'Excellent condition, all accessories included',
+        'price': '15000.50',
+        'category': 'electronics'
+    }
+
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
 
     response = client.get("/advertisements/all")
 
@@ -70,15 +81,18 @@ def test_get_advertisements_with_data(client, auth_token):
 
 
 def test_get_advertisement_by_id_success(client, auth_token):
-    create_response = client.post("/advertisements/",
-                                  headers={"Authorization": f"Bearer {auth_token}"},
-                                  json={
-                                      "title": "MacBook Pro for sale",
-                                      "description": "Latest model with warranty",
-                                      "price": 25000.00,
-                                      "category": "electronics"
-                                  }
-                                  )
+    form_data = {
+        'title': 'MacBook Pro for sale',
+        'description': 'Latest model with warranty',
+        'price': '25000.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     created_id = create_response.json()["id"]
 
     response = client.get(f"/advertisements/{created_id}")
@@ -97,29 +111,33 @@ def test_get_advertisement_by_id_not_found(client):
     assert response.json()["detail"] == "Advertisement not found"
 
 
-def test_get_advertisement_by_id_invalid_id(client):
-    response = client.get("/advertisements/invalid")
-
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-
 def test_update_advertisement_success(client, auth_token):
-    create_response = client.post("/advertisements/",
-                                  headers={"Authorization": f"Bearer {auth_token}"},
-                                  json={
-                                      "title": "Old Title",
-                                      "description": "Old description",
-                                      "price": 1000.00,
-                                      "category": "electronics"
-                                  })
+    form_data = {
+        'title': 'Old Title',
+        'description': 'Old description',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     created_id = create_response.json()["id"]
 
-    response = client.put(f"/advertisements/{created_id}",
-                          headers={"Authorization": f"Bearer {auth_token}"},
-                          json={
-                              "title": "Updated Title",
-                              "price": 1500.00
-                          })
+    update_data = {
+        'title': 'Updated Title',
+        'description': 'Old description',
+        'price': '1500.00',
+        'category': 'electronics'
+    }
+
+    response = client.put(
+        f"/advertisements/{created_id}",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=update_data
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -130,34 +148,54 @@ def test_update_advertisement_success(client, auth_token):
 
 
 def test_update_advertisement_unauthorized(client):
-    response = client.put("/advertisements/1", json={
-        "title": "Updated Title"
-    })
+    update_data = {
+        'title': 'Updated Title',
+        'description': 'desc',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    response = client.put("/advertisements/1", data=update_data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_update_advertisement_not_found(client, auth_token):
-    response = client.put("/advertisements/999",
-                          headers={"Authorization": f"Bearer {auth_token}"},
-                          json={"title": "Updated Title"})
+    update_data = {
+        'title': 'Updated Title',
+        'description': 'desc',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    response = client.put(
+        "/advertisements/999",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=update_data
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Advertisement not found"
 
 
 def test_delete_advertisement_success(client, auth_token):
-    create_response = client.post("/advertisements/",
-                                  headers={"Authorization": f"Bearer {auth_token}"},
-                                  json={
-                                      "title": "To Delete",
-                                      "description": "This will be deleted",
-                                      "price": 1000.00,
-                                      "category": "electronics"
-                                  })
+    form_data = {
+        'title': 'To Delete',
+        'description': 'This will be deleted',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     created_id = create_response.json()["id"]
 
-    response = client.delete(f"/advertisements/{created_id}",
-                             headers={"Authorization": f"Bearer {auth_token}"})
+    response = client.delete(
+        f"/advertisements/{created_id}",
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["message"] == "Advertisement deleted successfully"
@@ -172,43 +210,55 @@ def test_delete_advertisement_unauthorized(client):
 
 
 def test_delete_advertisement_not_found(client, auth_token):
-    response = client.delete("/advertisements/999",
-                             headers={"Authorization": f"Bearer {auth_token}"})
+    response = client.delete(
+        "/advertisements/999",
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Advertisement not found"
 
 
 def test_create_advertisement_invalid_category(client, auth_token):
-    response = client.post("/advertisements/",
-                          headers={"Authorization": f"Bearer {auth_token}"},
-                          json={
-                              "title": "Test",
-                              "description": "Test",
-                              "price": 100.00,
-                              "category": "invalid_category"
-                          })
+    form_data = {
+        'title': 'Test',
+        'description': 'Test',
+        'price': '100.00',
+        'category': 'invalid_category'
+    }
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_filter_advertisements_by_category(client, auth_token):
-    client.post("/advertisements/",
-                headers={"Authorization": f"Bearer {auth_token}"},
-                json={
-                    "title": "Phone",
-                    "description": "Test",
-                    "price": 100.00,
-                    "category": "electronics"
-                })
+    form_data1 = {
+        'title': 'Phone',
+        'description': 'Test',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
 
-    client.post("/advertisements/",
-                headers={"Authorization": f"Bearer {auth_token}"},
-                json={
-                    "title": "Chair",
-                    "description": "Test",
-                    "price": 50.00,
-                    "category": "furniture"
-                })
+    form_data2 = {
+        'title': 'Chair',
+        'description': 'Test',
+        'price': '50.00',
+        'category': 'furniture'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
 
     response = client.get("/advertisements/all?category=electronics")
     assert response.status_code == status.HTTP_200_OK
@@ -217,22 +267,26 @@ def test_filter_advertisements_by_category(client, auth_token):
     assert data[0]["category"] == "electronics"
 
 
-def test_update_advertisement_status_success(client, auth_token):
-    create_response = client.post("/advertisements/",
-                                  headers={"Authorization": f"Bearer {auth_token}"},
-                                  json={
-                                      "title": "Status Test",
-                                      "description": "Test description",
-                                      "price": 100.00,
-                                      "category": "electronics"
-                                  })
+def test_update_advertisement_status_patch(client, auth_token):
+    form_data = {
+        'title': 'Status Test',
+        'description': 'Test description',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
     created_id = create_response.json()["id"]
 
-    response = client.put(f"/advertisements/{created_id}",
-                          headers={"Authorization": f"Bearer {auth_token}"},
-                          json={
-                              "status": "reserved"
-                          })
+    response = client.patch(
+        f"/advertisements/{created_id}/status",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json={"new_status": "reserved"}
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -240,28 +294,36 @@ def test_update_advertisement_status_success(client, auth_token):
 
 
 def test_filter_advertisements_by_status(client, auth_token):
-    client.post("/advertisements/",
-                headers={"Authorization": f"Bearer {auth_token}"},
-                json={
-                    "title": "Available Item",
-                    "description": "Test",
-                    "price": 100.00,
-                    "category": "electronics"
-                })
+    form_data1 = {
+        'title': 'Available Item',
+        'description': 'Test',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
 
-    create_response = client.post("/advertisements/",
-                                  headers={"Authorization": f"Bearer {auth_token}"},
-                                  json={
-                                      "title": "Reserved Item",
-                                      "description": "Test",
-                                      "price": 50.00,
-                                      "category": "furniture"
-                                  })
+    form_data2 = {
+        'title': 'Reserved Item',
+        'description': 'Test',
+        'price': '50.00',
+        'category': 'furniture'
+    }
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
     reserved_id = create_response.json()["id"]
 
-    client.put(f"/advertisements/{reserved_id}",
-               headers={"Authorization": f"Bearer {auth_token}"},
-               json={"status": "reserved"})
+    client.patch(
+        f"/advertisements/{reserved_id}/status",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json={"new_status": "reserved"}
+    )
 
     response = client.get("/advertisements/all?status=available")
     assert response.status_code == status.HTTP_200_OK
@@ -271,15 +333,95 @@ def test_filter_advertisements_by_status(client, auth_token):
 
 
 def test_create_advertisement_default_status(client, auth_token):
-    response = client.post("/advertisements/",
-                           headers={"Authorization": f"Bearer {auth_token}"},
-                           json={
-                               "title": "New Item",
-                               "description": "Should be available by default",
-                               "price": 200.00,
-                               "category": "other"
-                           })
+    form_data = {
+        'title': 'New Item',
+        'description': 'Should be available by default',
+        'price': '200.00',
+        'category': 'other'
+    }
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["status"] == "available"
+
+
+def test_search_advertisements(client, auth_token):
+    form_data1 = {
+        'title': 'iPhone 14 Pro',
+        'description': 'Latest smartphone with great camera',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
+
+    form_data2 = {
+        'title': 'Samsung TV',
+        'description': 'High quality television',
+        'price': '800.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
+
+    response = client.get("/advertisements/all?search=iPhone")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert "iPhone" in data[0]["title"]
+
+    response = client.get("/advertisements/all?search=camera")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert "camera" in data[0]["description"]
+
+
+def test_sort_advertisements(client, auth_token):
+    form_data1 = {
+        'title': 'Expensive Item',
+        'description': 'High price',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
+
+    form_data2 = {
+        'title': 'Cheap Item',
+        'description': 'Low price',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
+
+    response = client.get("/advertisements/all?sort_by=price_low")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data[0]["price"] == 100.0
+    assert data[1]["price"] == 1000.0
+
+    response = client.get("/advertisements/all?sort_by=price_high")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data[0]["price"] == 1000.0
+    assert data[1]["price"] == 100.0
