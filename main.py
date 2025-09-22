@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+import time
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from app.api import users, advertisements, ratings, categories, messages
 from app.auth import auth
 from app.db.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
+from logger_config import setup_logger
 
 app = FastAPI(title="MarketNest API")
 
@@ -22,3 +25,31 @@ app.add_middleware(
 )
 
 Base.metadata.create_all(bind=engine)
+
+logger = setup_logger()
+
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    logger.info(f"➡ {request.method} {request.url}")
+
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        # Sadece kısa mesaj ile log
+        process_time = (time.time() - start_time) * 1000
+        logger.error(f"🔥 Error: {type(e).__name__}: {str(e)} "
+                     f"- {request.method} {request.url} (500) "
+                     f"({process_time:.2f} ms)")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error"}
+        )
+
+    process_time = (time.time() - start_time) * 1000
+    # Tüm status kodları loglanır: 200, 404, 422 vb.
+    logger.info(f"⬅ {request.method} {request.url} Status: {response.status_code} "
+                f"({process_time:.2f} ms)")
+    return response
