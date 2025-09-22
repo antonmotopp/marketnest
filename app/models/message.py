@@ -11,6 +11,7 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
+    advertisement_id = Column(Integer, ForeignKey("advertisements.id"), nullable=True)
 
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User")

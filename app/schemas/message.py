@@ -13,6 +13,7 @@ class MessageResponse(BaseModel):
     sender_id: int
     content: str
     created_at: datetime
+    advertisement_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class ChatParticipantResponse(BaseModel):

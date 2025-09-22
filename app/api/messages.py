@@ -49,7 +49,8 @@ async def send_message(
     db_message = Message(
         chat_id=chat.id,
         sender_id=current_user.id,
-        content=message.content
+        content=message.content,
+        advertisement_id=message.advertisement_id
     )
 
     db.add(db_message)
