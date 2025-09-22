@@ -1,23 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.auth.oauth2 import get_current_user
 from app.db.database import get_db
 from app.enums.category import CategoryEnum
 from app.enums.status import StatusEnum
-from app.models.advertisement import Advertisement
+from app.models.advertisement import Advertisement, AdvertisementPhoto
 from app.models.user import User
 from app.schemas.advertisement import StatusUpdate, AdvertisementResponse
 from typing import List, Optional
-import base64
 
 router = APIRouter()
 
 @router.post(
-   "/",
-   response_model=AdvertisementResponse,
-   summary="Create Advertisement",
-   description="Create a new advertisement. Requires authentication."
+    "/",
+    response_model=AdvertisementResponse,
+    summary="Create Advertisement",
+    description="Create a new advertisement. Requires authentication."
 )
 async def create_advertisement(
         title: str = Form(...),
@@ -28,27 +27,43 @@ async def create_advertisement(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    photo_base64_list = []
-    for photo in photos:
-        if photo.filename:
-            photo_bytes = await photo.read()
-            base64_photo = base64.b64encode(photo_bytes).decode('utf-8')
-            photo_base64_list.append(f"data:{photo.content_type};base64,{base64_photo}")
+    if len(photos) > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 5 photos allowed"
+        )
 
-    db_advertisement = Advertisement(
+    advertisement = Advertisement(
         title=title,
         description=description,
         price=price,
         user_id=current_user.id,
-        category=category,
-        photos=photo_base64_list
+        category=category
     )
 
-    db.add(db_advertisement)
+    db.add(advertisement)
     db.commit()
-    db.refresh(db_advertisement)
+    db.refresh(advertisement)
 
-    return db_advertisement
+    for i, photo in enumerate(photos):
+        if photo.filename:
+            photo_bytes = await photo.read()
+
+            db_photo = AdvertisementPhoto(
+                advertisement_id=advertisement.id,
+                photo_data=photo_bytes,
+                filename=photo.filename,
+                content_type=photo.content_type or "image/jpeg",
+                file_size=len(photo_bytes),
+                order=i
+            )
+
+            db.add(db_photo)
+
+    db.commit()
+    db.refresh(advertisement)
+
+    return advertisement
 
 
 @router.get(
@@ -65,7 +80,7 @@ async def get_advertisements(
         sort_by: Optional[str] = Query("newest", description="Sort by: newest, oldest, price_low, price_high"),
         db: Session = Depends(get_db)
 ):
-    query = db.query(Advertisement)
+    query = db.query(Advertisement).options(joinedload(Advertisement.photos_rel))
 
     if category:
         query = query.filter(Advertisement.category == category)
@@ -73,7 +88,6 @@ async def get_advertisements(
         query = query.filter(Advertisement.status == status)
     if user_id:
         query = query.filter(Advertisement.user_id == user_id)
-
 
     if search:
         search_term = f"%{search}%"
@@ -104,7 +118,9 @@ async def get_advertisements(
     description="Retrieve a single advertisement by its ID. No authentication required."
 )
 async def get_advertisement_by_id(id: int, db: Session = Depends(get_db)):
-    advertisement = db.query(Advertisement).filter(Advertisement.id == id).first()
+    advertisement = db.query(Advertisement).options(
+        joinedload(Advertisement.photos_rel)
+    ).filter(Advertisement.id == id).first()
 
     if not advertisement:
         raise HTTPException(
@@ -131,40 +147,53 @@ async def update_advertisement(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    db_advertisement = db.query(Advertisement).filter(Advertisement.id == id).first()
+    advertisement = db.query(Advertisement).filter(Advertisement.id == id).first()
 
-    if not db_advertisement:
+    if not advertisement:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Advertisement not found"
         )
 
-    if db_advertisement.user_id != current_user.id:
+    if advertisement.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own advertisements"
         )
 
-    db_advertisement.title = title
-    db_advertisement.description = description
-    db_advertisement.price = price
-    db_advertisement.category = category
+    if photos and photos[0].filename and len(photos) > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 5 photos allowed"
+        )
 
-    photo_base64_list = []
+    advertisement.title = title
+    advertisement.description = description
+    advertisement.price = price
+    advertisement.category = category
 
     if photos and photos[0].filename:
-        for photo in photos:
-            photo_bytes = await photo.read()
-            base64_photo = base64.b64encode(photo_bytes).decode('utf-8')
-            content_type = photo.content_type or "image/jpeg"
-            base64_with_prefix = f"data:{content_type};base64,{base64_photo}"
-            photo_base64_list.append(base64_with_prefix)
+        db.query(AdvertisementPhoto).filter(
+            AdvertisementPhoto.advertisement_id == id
+        ).delete()
 
-    db_advertisement.photos = photo_base64_list
+        for i, photo in enumerate(photos):
+            photo_bytes = await photo.read()
+
+            db_photo = AdvertisementPhoto(
+                advertisement_id=id,
+                photo_data=photo_bytes,
+                filename=photo.filename,
+                content_type=photo.content_type or "image/jpeg",
+                file_size=len(photo_bytes),
+                order=i
+            )
+
+            db.add(db_photo)
 
     db.commit()
-    db.refresh(db_advertisement)
-    return db_advertisement
+    db.refresh(advertisement)
+    return advertisement
 
 
 @router.patch(
@@ -198,6 +227,7 @@ async def update_advertisement_status(
     db.refresh(db_advertisement)
 
     return db_advertisement
+
 
 @router.delete(
     "/{id}",

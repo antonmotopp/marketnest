@@ -22,6 +22,7 @@ def test_create_advertisement_success(client, auth_token):
     assert data["price"] == 15000.50
     assert data["user_id"] == 1
     assert data["category"] == "electronics"
+    assert data["photos"] == []
     assert "id" in data
     assert "created_at" in data
 
@@ -425,3 +426,28 @@ def test_sort_advertisements(client, auth_token):
     data = response.json()
     assert data[0]["price"] == 1000.0
     assert data[1]["price"] == 100.0
+
+
+def test_create_advertisement_with_photos(client, auth_token):
+    form_data = {
+        'title': 'iPhone with photos',
+        'description': 'Has photos',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+
+    files = {
+        'photos': ('test.jpg', b'fake image data', 'image/jpeg')
+    }
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data,
+        files=files
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data["photos"]) == 1
+    assert data["photos"][0].startswith("data:image/jpeg;base64,")
