@@ -1,18 +1,19 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
-class UserRatingBase(BaseModel):
+class RatingBase(BaseModel):
     reviewed_user_id: int = Field(..., gt=0)
     advertisement_id: int = Field(..., gt=0)
     rating: int = Field(..., ge=1, le=5)
     comment: str = Field(..., min_length=1, max_length=500)
 
-class UserRatingCreate(UserRatingBase):
+class RatingCreate(RatingBase):
     pass
 
-class UserRatingResponse(BaseModel):
+class RatingResponse(BaseModel):
     id: int
     reviewer_id: int
+    reviewed_user_id: int
     advertisement_id: int
     rating: int = Field(..., ge=1, le=5)
     comment: str

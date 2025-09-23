@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text
 from datetime import datetime
 from sqlalchemy.orm import relationship
 
+
 class Message(Base):
     __tablename__ = "messages"
 

@@ -22,7 +22,7 @@ class Advertisement(Base):
     updated_at = Column(DateTime, default=datetime.now)
 
     owner = relationship("User", back_populates="advertisements")
-    reviews = relationship("UserRating", back_populates="advertisement")
+    ratings = relationship("Rating", back_populates="advertisement")
     photos_rel = relationship("AdvertisementPhoto", back_populates="advertisement", cascade="all, delete-orphan")
 
     @property

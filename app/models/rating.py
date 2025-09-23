@@ -4,9 +4,8 @@ from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 
-
-class UserRating(Base):
-    __tablename__ = "user_ratings"
+class Rating(Base):
+    __tablename__ = "ratings"
 
     id = Column(Integer, primary_key=True)
     reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -18,4 +17,4 @@ class UserRating(Base):
 
     reviewer = relationship("User", foreign_keys=[reviewer_id], back_populates="reviews_given")
     reviewed_user = relationship("User", foreign_keys=[reviewed_user_id], back_populates="reviews_received")
-    advertisement = relationship("Advertisement", back_populates="reviews")
+    advertisement = relationship("Advertisement", back_populates="ratings")
