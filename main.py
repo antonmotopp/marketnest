@@ -21,7 +21,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://marketnest.vercel.app"
+        "https://marketnest-three.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
