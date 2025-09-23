@@ -77,10 +77,14 @@ async def get_advertisements(
         status: Optional[StatusEnum] = Query(None, description="Filter by status"),
         user_id: Optional[int] = Query(None, description="Filter by user id"),
         search: Optional[str] = Query(None, description="Search in title and description"),
-        sort_by: Optional[str] = Query("newest", description="Sort by: newest, oldest, price_low, price_high"),
+        sort_by: Optional[str] = Query("newest", description="Sort by date: newest, oldest"),
+        rating_sort: Optional[str] = Query(None, description="Sort by rating: rating_high, rating_low"),
         db: Session = Depends(get_db)
 ):
-    query = db.query(Advertisement).options(joinedload(Advertisement.photos_rel))
+    query = db.query(Advertisement).options(
+        joinedload(Advertisement.photos_rel),
+        joinedload(Advertisement.owner).joinedload(User.reviews_received)
+    )
 
     if category:
         query = query.filter(Advertisement.category == category)
@@ -100,14 +104,16 @@ async def get_advertisements(
 
     if sort_by == "oldest":
         query = query.order_by(Advertisement.created_at.asc())
-    elif sort_by == "price_low":
-        query = query.order_by(Advertisement.price.asc())
-    elif sort_by == "price_high":
-        query = query.order_by(Advertisement.price.desc())
     else:
         query = query.order_by(Advertisement.created_at.desc())
 
     advertisements = query.all()
+
+    if rating_sort == "rating_low":
+        advertisements.sort(key=lambda ad: ad.owner.average_rating)
+    elif rating_sort == "rating_high":
+        advertisements.sort(key=lambda ad: ad.owner.average_rating, reverse=True)
+
     return advertisements
 
 
@@ -227,6 +233,36 @@ async def update_advertisement_status(
     db.refresh(db_advertisement)
 
     return db_advertisement
+
+
+@router.patch(
+    "/{id}/buy",
+    response_model=AdvertisementResponse,
+    summary="Buy advertisement",
+    description="Purchase this item"
+)
+async def buy_advertisement(
+        id: int,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    advertisement = db.query(Advertisement).filter(Advertisement.id == id).first()
+
+    if not advertisement:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Advertisement not found")
+
+    if advertisement.user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot buy your own item")
+
+    if advertisement.status != StatusEnum.AVAILABLE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Item is not available")
+
+    advertisement.status = StatusEnum.SOLD
+    advertisement.buyer_id = current_user.id
+    db.commit()
+    db.refresh(advertisement)
+
+    return advertisement
 
 
 @router.delete(

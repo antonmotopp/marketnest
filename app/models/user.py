@@ -13,9 +13,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
 
-    advertisements = relationship("Advertisement", back_populates="owner")
-    reviews_given = relationship("Rating", foreign_keys="Rating.reviewer_id", back_populates="reviewer")
-    reviews_received = relationship("Rating", foreign_keys="Rating.reviewed_user_id", back_populates="reviewed_user")
+    advertisements = relationship("Advertisement", foreign_keys="[Advertisement.user_id]", back_populates="owner")
+    purchases = relationship("Advertisement", foreign_keys="[Advertisement.buyer_id]", back_populates="buyer")
+    reviews_given = relationship("Rating", foreign_keys="[Rating.reviewer_id]", back_populates="reviewer")
+    reviews_received = relationship("Rating", foreign_keys="[Rating.reviewed_user_id]", back_populates="reviewed_user")
 
     @property
     def average_rating(self) -> float:

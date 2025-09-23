@@ -28,6 +28,7 @@ class StatusUpdate(BaseModel):
 class AdvertisementResponse(AdvertisementBase):
     id: int
     user_id: int
+    buyer_id: Optional[int] = None
     status: StatusEnum
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)

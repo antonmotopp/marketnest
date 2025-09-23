@@ -390,44 +390,6 @@ def test_search_advertisements(client, auth_token):
     assert "camera" in data[0]["description"]
 
 
-def test_sort_advertisements(client, auth_token):
-    form_data1 = {
-        'title': 'Expensive Item',
-        'description': 'High price',
-        'price': '1000.00',
-        'category': 'electronics'
-    }
-    client.post(
-        "/advertisements/",
-        headers={"Authorization": f"Bearer {auth_token}"},
-        data=form_data1
-    )
-
-    form_data2 = {
-        'title': 'Cheap Item',
-        'description': 'Low price',
-        'price': '100.00',
-        'category': 'electronics'
-    }
-    client.post(
-        "/advertisements/",
-        headers={"Authorization": f"Bearer {auth_token}"},
-        data=form_data2
-    )
-
-    response = client.get("/advertisements/all?sort_by=price_low")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data[0]["price"] == 100.0
-    assert data[1]["price"] == 1000.0
-
-    response = client.get("/advertisements/all?sort_by=price_high")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data[0]["price"] == 1000.0
-    assert data[1]["price"] == 100.0
-
-
 def test_create_advertisement_with_photos(client, auth_token):
     form_data = {
         'title': 'iPhone with photos',
@@ -451,3 +413,250 @@ def test_create_advertisement_with_photos(client, auth_token):
     data = response.json()
     assert len(data["photos"]) == 1
     assert data["photos"][0].startswith("data:image/jpeg;base64,")
+
+
+def test_sort_advertisements_by_date(client, auth_token):
+    import time
+
+    form_data1 = {
+        'title': 'First Item',
+        'description': 'Created first',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
+
+    time.sleep(1)
+
+    form_data2 = {
+        'title': 'Second Item',
+        'description': 'Created second',
+        'price': '200.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
+
+    response = client.get("/advertisements/all?sort_by=newest")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data[0]["title"] == "Second Item"
+    assert data[1]["title"] == "First Item"
+
+    response = client.get("/advertisements/all?sort_by=oldest")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data[0]["title"] == "First Item"
+    assert data[1]["title"] == "Second Item"
+
+
+def test_buy_advertisement_success(client, auth_tokens):
+    seller_token, buyer_token = auth_tokens
+
+    form_data = {
+        'title': 'Item for Sale',
+        'description': 'Available item',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {seller_token}"},
+        data=form_data
+    )
+    ad_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/advertisements/{ad_id}/buy",
+        headers={"Authorization": f"Bearer {buyer_token}"}
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["status"] == "sold"
+    assert data["buyer_id"] == 2
+
+
+def test_buy_own_advertisement_fails(client, auth_token):
+    form_data = {
+        'title': 'My Item',
+        'description': 'Cannot buy own item',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
+    ad_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/advertisements/{ad_id}/buy",
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "cannot buy your own item" in response.json()["detail"].lower()
+
+
+def test_buy_unavailable_advertisement_fails(client, auth_tokens):
+    seller_token, buyer_token = auth_tokens
+
+    form_data = {
+        'title': 'Sold Item',
+        'description': 'Already sold',
+        'price': '100.00',
+        'category': 'electronics'
+    }
+
+    create_response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {seller_token}"},
+        data=form_data
+    )
+    ad_id = create_response.json()["id"]
+
+    client.patch(
+        f"/advertisements/{ad_id}/status",
+        headers={"Authorization": f"Bearer {seller_token}"},
+        json={"new_status": "reserved"}
+    )
+
+    response = client.patch(
+        f"/advertisements/{ad_id}/buy",
+        headers={"Authorization": f"Bearer {buyer_token}"}
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "not available" in response.json()["detail"].lower()
+
+
+def test_buy_advertisement_unauthorized(client):
+    response = client.patch("/advertisements/1/buy")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_buy_nonexistent_advertisement(client, auth_token):
+    response = client.patch(
+        "/advertisements/999/buy",
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_filter_advertisements_multiple_params(client, auth_token):
+    form_data1 = {
+        'title': 'iPhone Electronics',
+        'description': 'Available phone',
+        'price': '1000.00',
+        'category': 'electronics'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data1
+    )
+
+    form_data2 = {
+        'title': 'Chair Furniture',
+        'description': 'Available chair',
+        'price': '200.00',
+        'category': 'furniture'
+    }
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data2
+    )
+
+    response = client.get("/advertisements/all?category=electronics&search=iPhone&status=available")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["title"] == "iPhone Electronics"
+    assert data[0]["category"] == "electronics"
+    assert data[0]["status"] == "available"
+
+
+def test_advertisement_with_maximum_photos(client, auth_token):
+    form_data = {
+        'title': 'Item with max photos',
+        'description': 'Has maximum photos',
+        'price': '500.00',
+        'category': 'electronics'
+    }
+
+    files = [
+        ('photos', (f'test{i}.jpg', b'fake image data', 'image/jpeg'))
+        for i in range(5)
+    ]
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data,
+        files=files
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data["photos"]) == 5
+
+
+def test_advertisement_exceeds_photo_limit(client, auth_token):
+    form_data = {
+        'title': 'Item with too many photos',
+        'description': 'Exceeds photo limit',
+        'price': '500.00',
+        'category': 'electronics'
+    }
+
+    files = [
+        ('photos', (f'test{i}.jpg', b'fake image data', 'image/jpeg'))
+        for i in range(6)
+    ]
+
+    response = client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data,
+        files=files
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "maximum 5 photos" in response.json()["detail"].lower()
+
+
+def test_search_advertisements_case_insensitive(client, auth_token):
+    form_data = {
+        'title': 'iPhone Pro Max',
+        'description': 'Latest smartphone model',
+        'price': '1200.00',
+        'category': 'electronics'
+    }
+
+    client.post(
+        "/advertisements/",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        data=form_data
+    )
+
+    response = client.get("/advertisements/all?search=iphone")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+
+    response = client.get("/advertisements/all?search=SMARTPHONE")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1

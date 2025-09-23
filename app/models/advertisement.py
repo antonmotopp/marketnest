@@ -7,7 +7,6 @@ from app.enums.status import StatusEnum
 import base64
 from typing import List
 
-
 class Advertisement(Base):
     __tablename__ = "advertisements"
 
@@ -18,11 +17,13 @@ class Advertisement(Base):
     category = Column(Enum(CategoryEnum), nullable=False)
     status = Column(Enum(StatusEnum), nullable=False, default=StatusEnum.AVAILABLE)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
 
-    owner = relationship("User", back_populates="advertisements")
-    ratings = relationship("Rating", back_populates="advertisement")
+    owner = relationship("User", foreign_keys="[Advertisement.user_id]", back_populates="advertisements")
+    buyer = relationship("User", foreign_keys="[Advertisement.buyer_id]", back_populates="purchases")
+    ratings = relationship("Rating", back_populates="advertisement", cascade="all, delete-orphan")
     photos_rel = relationship("AdvertisementPhoto", back_populates="advertisement", cascade="all, delete-orphan")
 
     @property
@@ -32,7 +33,6 @@ class Advertisement(Base):
             base64_photo = base64.b64encode(photo.photo_data).decode('utf-8')
             photo_list.append(f"data:{photo.content_type};base64,{base64_photo}")
         return photo_list
-
 
 class AdvertisementPhoto(Base):
     __tablename__ = "advertisement_photos"

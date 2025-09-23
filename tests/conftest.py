@@ -57,3 +57,27 @@ def auth_token(client):
         "password": "testpassword"
     })
     return response.json()["access_token"]
+
+
+@pytest.fixture
+def auth_tokens(client):
+    user2_data = {
+        "username": "testuser2",
+        "email": "test2@example.com",
+        "password": "testpassword"
+    }
+    client.post("/users/register", json=user2_data)
+
+    response1 = client.post("/auth/login", data={
+        "username": "testuser",
+        "password": "testpassword"
+    })
+    token1 = response1.json()["access_token"]
+
+    response2 = client.post("/auth/login", data={
+        "username": "testuser2",
+        "password": "testpassword"
+    })
+    token2 = response2.json()["access_token"]
+
+    return [token1, token2]
