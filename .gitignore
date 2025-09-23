@@ -1,4 +1,6 @@
 .idea
+/.idea
+marketnest.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -56,6 +58,10 @@ cover/
 # Translations
 *.mo
 *.pot
+
+# Application logs
+app/logs/
+
 
 # Django stuff:
 *.log
@@ -207,3 +213,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+.idea/
+.idea/marketnest.iml
+.idea/misc.xml
