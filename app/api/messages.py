@@ -9,6 +9,8 @@ from app.models.user import User
 from app.schemas.message import MessageCreate, MessageResponse, ConversationResponse
 from typing import List
 
+from app.websockets.connection_manager import manager
+
 router = APIRouter()
 
 
@@ -56,6 +58,25 @@ async def send_message(
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
+
+    websocket_message = {
+        "type": "new_message",
+        "message": {
+            "id": db_message.id,
+            "content": db_message.content,
+            "sender_id": db_message.sender_id,
+            "receiver_id": message.receiver_id,
+            "chat_id": db_message.chat_id,
+            "advertisement_id": db_message.advertisement_id,
+            "created_at": db_message.created_at.isoformat(),
+        }
+    }
+
+    await manager.send_to_conversation(
+        websocket_message,
+        current_user.id,
+        message.receiver_id
+    )
 
     return db_message
 
